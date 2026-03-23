@@ -35,8 +35,14 @@ def ts():
 
 def fetch(url) -> str | None:
     try:
-        r = cf_requests.get(url, impersonate="chrome110", timeout=20,
-                            headers={"Referer": "https://www.royalchallengers.com/"})
+        headers = {"Referer": "https://www.royalchallengers.com/"}
+        if "bookmyshow" in url:
+            headers = {
+                "Referer": "https://www.google.com/",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "en-IN,en;q=0.9",
+            }
+        r = cf_requests.get(url, impersonate="chrome110", timeout=20, headers=headers)
         r.raise_for_status()
         return r.text
     except Exception as e:
@@ -89,7 +95,8 @@ def send_email_to(to_email: str, subject: str, body: str):
         msg["Subject"] = subject
         msg.attach(MIMEText(body, "plain"))
 
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+        with smtplib.SMTP("smtp.gmail.com", 587) as smtp:
+            smtp.starttls()
             smtp.login(GMAIL_USER, GMAIL_PASSWORD)
             smtp.sendmail(GMAIL_USER, to_email, msg.as_string())
 
@@ -328,7 +335,7 @@ def run():
         # ── TEST 2: Our demo page — same detection as real RCB site ────
         new_test2 = fetch(TEST_URL2)
         if new_test2:
-            spans = re.findall(r'<span class="buy-tck-spn">([^<]+)</span>', new_test2)
+            spans = re.findall(r'<span class="buy-tck-spn[^"]*">([^<]+)</span>', new_test2)
             print(f"[{ts()}] [DEMO]  Button: {spans}")
             new_hash = get_page_hash(new_test2)
             if new_hash != last_test2_hash:
